@@ -17,12 +17,12 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   @Override
-  public Cursor project(Cursor cursor, boolean isGettingLast, String[] attrNames) {
+  public Cursor project(Cursor cursor, boolean isGettingLast, String[] attrNames, boolean isOutputGettingLast) {
     return null;
   }
 
   @Override
-  public Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, JoinCondition condition) {
+  public Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, JoinCondition condition, boolean isOutputGettingLast) {
     return null;
   }
 

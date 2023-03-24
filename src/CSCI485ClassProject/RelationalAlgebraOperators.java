@@ -38,11 +38,12 @@ public interface RelationalAlgebraOperators {
   /**
    * project operator. Returns a cursor that projects the certain attributes out from a given READ cursor.
    * @param cursor the input cursor that points to certain records.
-   * @param isGettingLast true if the input cursor is initialized by getLast
+   * @param isInputGettingLast true if the input cursor is initialized by getLast
    * @param attrNames the target attribute names to be projected from records.
+   * @param isOutputGettingLast true if the output cursor is initialized by getLast.
    * @return the cursor that projects certain attributes of records.
    */
-  Cursor project(Cursor cursor, boolean isGettingLast, String[] attrNames);
+  Cursor project(Cursor cursor, boolean isInputGettingLast, String[] attrNames, boolean isOutputGettingLast);
 
   /**
    * join operator. Returns a cursor that joins two set of records(pointed with two cursors) with certain join condition
@@ -51,9 +52,10 @@ public interface RelationalAlgebraOperators {
    * @param cursor2 second cursor that points to a set of records.
    * @param isGettingLast2 true if the cursor1 is initialized by getLast
    * @param condition join condition. See class {JoinCondition} for detailed definitions.
+   * @param isOutputGettingLast true if the output cursor is initialized by getLast
    * @return the cursor that points to the records after join operation.
    */
-  Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, JoinCondition condition);
+  Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, JoinCondition condition, boolean isOutputGettingLast);
 
 
   /**
