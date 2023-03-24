@@ -17,21 +17,17 @@ Once finished, you can verify it by running the unit test of Part1/Part2/Part3.
     
 ## Codes to implement
 Under `src/CSCI485ClassProject`, there are 2 classes to finish:
-- `Cursor`: `Cursor` implementation
-- `RecordsImpl`: implementation of an interface class `Records`
+- `RelationalAlgebraOperatorsImpl`: implementation of an interface class `RelationalAlgebraOperators`
+
+Feel free to modify other implementations like `Cursor` if needed.
 
 ## Run Tests on macOS/Linux using `make`
 
 If you are developing in `macOS/Linux` environment(recommended), we provide `Makefile` for you to run tests quickly.
 
-To run tests of part1, use command
+To run tests of partX, use command
 ```shell
-make part1Test
-```
-
-To run tests of part2, use command
-```shell
-make part2Test
+make partXTest
 ```
 
 As you may have different project structures, Makefile may not work in your implementation. In this case, you can change the `sources` variable in Makefile by adding the name of the java files you created to it.
