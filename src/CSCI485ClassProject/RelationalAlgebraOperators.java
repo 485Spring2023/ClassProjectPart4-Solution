@@ -3,6 +3,7 @@ package CSCI485ClassProject;
 import CSCI485ClassProject.models.ComparisonOperator;
 import CSCI485ClassProject.models.JoinCondition;
 import CSCI485ClassProject.models.PredicateConnectorType;
+import CSCI485ClassProject.models.UpdateOperator;
 
 public interface RelationalAlgebraOperators {
 
@@ -71,21 +72,18 @@ public interface RelationalAlgebraOperators {
   StatusCode insert(String tableName, Cursor cursor, boolean isGettingLast);
 
   /**
-   * update operator. Updates existing records pointed by the cursor of a target table.
+   * update operator.
    *
    * @param tableName the target tableName
-   * @param cursor the cursor that points to a set of records
-   * @param isGettingLast true if the input cursor is initialized by getLast
    * @return StatusCode
    */
-  StatusCode update(String tableName, Cursor cursor, boolean isGettingLast);
+  StatusCode update(String tableName, String[] updateAttrNames, Object[] values, UpdateOperator[] updateOperators,
+                    String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators);
 
   /**
    * delete operator. Deletes existing records pointed by the cursor of a target table.
    * @param tableName the target tableName
-   * @param cursor the cursor that points to a set of records
-   * @param isGettingLast true if the input cursor is initialized by getLast
    * @return StatusCode
    */
-  StatusCode delete(String tableName, Cursor cursor, boolean isGettingLast);
+  StatusCode delete(String tableName, String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators);
 }

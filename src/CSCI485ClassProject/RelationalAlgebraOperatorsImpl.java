@@ -3,6 +3,7 @@ package CSCI485ClassProject;
 import CSCI485ClassProject.models.ComparisonOperator;
 import CSCI485ClassProject.models.JoinCondition;
 import CSCI485ClassProject.models.PredicateConnectorType;
+import CSCI485ClassProject.models.UpdateOperator;
 
 // your codes
 public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperators {
@@ -32,12 +33,12 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   @Override
-  public StatusCode update(String tableName, Cursor cursor, boolean isGettingLast) {
+  public StatusCode update(String tableName, String[] updateAttrNames, Object[] values, UpdateOperator[] updateOperators, String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators) {
     return null;
   }
 
   @Override
-  public StatusCode delete(String tableName, Cursor cursor, boolean isGettingLast) {
+  public StatusCode delete(String tableName, String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators) {
     return null;
   }
 }
