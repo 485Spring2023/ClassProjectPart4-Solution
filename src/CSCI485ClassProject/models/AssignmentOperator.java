@@ -1,6 +1,6 @@
 package CSCI485ClassProject.models;
 
-public enum UpdateOperator {
+public enum AssignmentOperator {
   // =
   ASSIGN,
 

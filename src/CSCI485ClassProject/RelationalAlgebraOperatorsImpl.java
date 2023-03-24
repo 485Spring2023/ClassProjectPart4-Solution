@@ -1,29 +1,33 @@
 package CSCI485ClassProject;
 
-import CSCI485ClassProject.models.ComparisonOperator;
-import CSCI485ClassProject.models.JoinCondition;
-import CSCI485ClassProject.models.PredicateConnectorType;
-import CSCI485ClassProject.models.UpdateOperator;
+import CSCI485ClassProject.models.AssignmentPredicate;
+import CSCI485ClassProject.models.ComparisonPredicate;
 
 // your codes
 public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperators {
+
   @Override
-  public Cursor select(String tableName, String[] attrNames, Object[] attrValues, ComparisonOperator[] operators, PredicateConnectorType predConn, boolean isGettingLast, boolean[] isUsingIndex) {
+  public Cursor select(String tableName, ComparisonPredicate predicate, boolean isGettingLast, boolean isUsingIndex) {
     return null;
   }
 
   @Override
-  public Cursor select(Cursor cursor, boolean isInputGettingLast, String[] attrNames, Object[] attrValues, ComparisonOperator[] operators, PredicateConnectorType predConn, boolean isOutputGettingLast, boolean[] isUsingIndex) {
+  public Cursor project(String tableName, String attrName, boolean isOutputGettingLast) {
     return null;
   }
 
   @Override
-  public Cursor project(Cursor cursor, boolean isGettingLast, String[] attrNames, boolean isOutputGettingLast) {
+  public Cursor project(Cursor cursor, boolean isInputGettingLast, String attrName) {
     return null;
   }
 
   @Override
-  public Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, JoinCondition condition, boolean isOutputGettingLast) {
+  public Cursor join(String table1Name, String table2Name, ComparisonPredicate predicate, boolean isOutputGettingLast) {
+    return null;
+  }
+
+  @Override
+  public Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, ComparisonPredicate predicate, boolean isOutputGettingLast) {
     return null;
   }
 
@@ -33,12 +37,12 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   @Override
-  public StatusCode update(String tableName, String[] updateAttrNames, Object[] values, UpdateOperator[] updateOperators, String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators) {
+  public StatusCode update(String tableName, AssignmentPredicate assignPredicate, ComparisonPredicate compPredicate) {
     return null;
   }
 
   @Override
-  public StatusCode delete(String tableName, String[] compAttrNames, Object[] compAttrVals, ComparisonOperator[] compOperators) {
+  public StatusCode delete(String tableName, ComparisonPredicate comparisonPredicate) {
     return null;
   }
 }
