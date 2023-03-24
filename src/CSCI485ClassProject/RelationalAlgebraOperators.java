@@ -1,26 +1,37 @@
 package CSCI485ClassProject;
 
 import CSCI485ClassProject.models.AssignmentPredicate;
-import CSCI485ClassProject.models.ComparisonOperator;
 import CSCI485ClassProject.models.ComparisonPredicate;
-import CSCI485ClassProject.models.AssignmentOperator;
+import CSCI485ClassProject.models.Record;
+
+import java.util.Set;
 
 public interface RelationalAlgebraOperators {
+  Iterator select(String tableName, ComparisonPredicate predicate, boolean isUsingIndex);
 
-  Cursor select(String tableName, ComparisonPredicate predicate, boolean isGettingLast, boolean isUsingIndex);
-
-  Cursor project(String tableName, String attrName, boolean isOutputGettingLast);
-
-  // cursor may be the result of select/join/project operators
-  Cursor project(Cursor cursor, boolean isInputGettingLast, String attrName);
+  Set<Record> simpleSelect(String tableName, ComparisonPredicate predicate, boolean isUsingIndex);
 
 
-  Cursor join(String table1Name, String table2Name,
-              ComparisonPredicate predicate, boolean isOutputGettingLast);
+  // if isDuplicateFree is true, use sorting NO in-memory data structures, e.g. HashSet.
+  // To implement it:
+  // - open a scan cursor of the given table
+  // - extract the attrName of every row and insert into a new temporary table
+  // - close the previous cursor
+  // - open another cursor on the temp table
+  // - every time it getNext/getPrevious, check if it encounters the same attrVal with the previous one.
+  Iterator project(String tableName, String attrName, boolean isDuplicateFree);
+
+  Iterator project(Iterator iterator, String attrName, boolean isInputGettingLast);
+
+  Set<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree);
+
+  Set<Record> simpleProject(Iterator iterator, String attrName, boolean isInputGettingLast);
+
+
+  Iterator join(Iterator iterator1, Iterator iterator2,
+                ComparisonPredicate predicate, String[] attrNames);
 
   // cursor1 and cursor2 may be the result of select/join/project operators
-  Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2,
-              ComparisonPredicate predicate, boolean isOutputGettingLast);
 
 
   /**

@@ -2,32 +2,44 @@ package CSCI485ClassProject;
 
 import CSCI485ClassProject.models.AssignmentPredicate;
 import CSCI485ClassProject.models.ComparisonPredicate;
+import CSCI485ClassProject.models.Record;
+
+import java.util.Set;
 
 // your codes
 public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperators {
-
   @Override
-  public Cursor select(String tableName, ComparisonPredicate predicate, boolean isGettingLast, boolean isUsingIndex) {
+  public Iterator select(String tableName, ComparisonPredicate predicate, boolean isUsingIndex) {
     return null;
   }
 
   @Override
-  public Cursor project(String tableName, String attrName, boolean isOutputGettingLast) {
+  public Set<Record> simpleSelect(String tableName, ComparisonPredicate predicate, boolean isUsingIndex) {
     return null;
   }
 
   @Override
-  public Cursor project(Cursor cursor, boolean isInputGettingLast, String attrName) {
+  public Iterator project(String tableName, String attrName, boolean isDuplicateFree) {
     return null;
   }
 
   @Override
-  public Cursor join(String table1Name, String table2Name, ComparisonPredicate predicate, boolean isOutputGettingLast) {
+  public Iterator project(Iterator iterator, String attrName, boolean isInputGettingLast) {
     return null;
   }
 
   @Override
-  public Cursor join(Cursor cursor1, boolean isGettingLast1, Cursor cursor2, boolean isGettingLast2, ComparisonPredicate predicate, boolean isOutputGettingLast) {
+  public Set<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree) {
+    return null;
+  }
+
+  @Override
+  public Set<Record> simpleProject(Iterator iterator, String attrName, boolean isInputGettingLast) {
+    return null;
+  }
+
+  @Override
+  public Iterator join(Iterator iterator1, Iterator iterator2, ComparisonPredicate predicate, String[] attrNames) {
     return null;
   }
 
