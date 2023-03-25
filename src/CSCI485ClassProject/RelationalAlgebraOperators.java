@@ -28,10 +28,8 @@ public interface RelationalAlgebraOperators {
   Set<Record> simpleProject(Iterator iterator, String attrName, boolean isInputGettingLast);
 
 
-  Iterator join(Iterator iterator1, Iterator iterator2,
+  Iterator join(Iterator outerIterator, Iterator innerIterator,
                 ComparisonPredicate predicate, String[] attrNames);
-
-  // cursor1 and cursor2 may be the result of select/join/project operators
 
 
   /**
