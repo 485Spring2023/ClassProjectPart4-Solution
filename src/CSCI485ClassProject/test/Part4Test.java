@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -123,7 +124,7 @@ public class Part4Test {
 
   private Record getExpectedDepartmentRecord(long dno) {
     Record rec = new Record();
-    String name = getName(dno);
+    String name = getDepartmentName(dno);
     long floor = getFloor(dno);
 
     rec.setAttrNameAndValue(DNO, dno);
@@ -321,7 +322,6 @@ public class Part4Test {
       if (record == null) {
         break;
       }
-
       actualRecordSet.add(record);
     }
 
