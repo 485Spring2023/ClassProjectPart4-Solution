@@ -59,6 +59,10 @@ public class Cursor {
     this.tx = tx;
   }
 
+  public void setTx(Transaction tx) {
+    this.tx = tx;
+  }
+
   public Transaction getTx() {
     return tx;
   }

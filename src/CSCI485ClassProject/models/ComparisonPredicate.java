@@ -62,8 +62,9 @@ public class ComparisonPredicate {
     this.rightHandSideValue = rightHandSideValue;
   }
 
-  public ComparisonPredicate() {}
-
+  public ComparisonPredicate() {
+    // None predicate by default
+  }
   // e.g. Salary == 10000, Salary <= 5000
   public ComparisonPredicate(String leftHandSideAttrName, AttributeType leftHandSideAttrType, ComparisonOperator operator, Object rightHandSideValue) {
     predicateType = Type.ONE_ATTR;
@@ -112,8 +113,31 @@ public class ComparisonPredicate {
 
   // verify that two records are qualified
   public boolean isRecordQualified(Record rec1, Record rec2) {
-    // TODO: finish this
-    return false;
+    if(rec1 == null || rec2 == null) {
+      return false;
+    }
+
+    if (validate() != StatusCode.PREDICATE_VALID) {
+      return false;
+    }
+
+    if (predicateType != Type.TWO_ATTR) {
+      return false;
+    }
+
+    Object val1 = rec1.getValueForGivenAttrName(leftHandSideAttrName);
+    Object val2 = rec2.getValueForGivenAttrName(rightHandSideAttrName);
+    if (val1 == null || val2 == null) {
+      return false;
+    }
+
+    if (leftHandSideAttrType == AttributeType.INT) {
+      Object resultVal = AlgebraicOperatorUtils.computeTwoINT(val2, rightHandSideValue, rightHandSideOperator);
+      return ComparisonPredicateUtils.compareTwoINT(val1, resultVal, operator);
+    } else {
+      Object resultVal = AlgebraicOperatorUtils.computeTwoDOUBLE(val2, rightHandSideValue, rightHandSideOperator);
+      return ComparisonPredicateUtils.compareTwoDOUBLE(val1, resultVal, operator);
+    }
   }
 
   // verify that the record is qualified
@@ -152,12 +176,12 @@ public class ComparisonPredicate {
         // leftHandSideAttr does not exist in the record, record is unqualified
         return false;
       }
-      Object rightVal = record.getValueForGivenAttrName(leftHandSideAttrName);
+      Object rightVal = record.getValueForGivenAttrName(rightHandSideAttrName);
       if (leftHandSideAttrType == AttributeType.INT) {
-        Object resultVal = AlgebraicOperatorUtils.computeTwoINT(leftVal, rightHandSideValue, rightHandSideOperator);
+        Object resultVal = AlgebraicOperatorUtils.computeTwoINT(rightVal, rightHandSideValue, rightHandSideOperator);
         return ComparisonPredicateUtils.compareTwoINT(leftVal, resultVal, operator);
       } else {
-        Object resultVal = AlgebraicOperatorUtils.computeTwoDOUBLE(leftVal, rightHandSideValue, rightHandSideOperator);
+        Object resultVal = AlgebraicOperatorUtils.computeTwoDOUBLE(rightVal, rightHandSideValue, rightHandSideOperator);
         return ComparisonPredicateUtils.compareTwoDOUBLE(leftVal, resultVal, operator);
       }
     }

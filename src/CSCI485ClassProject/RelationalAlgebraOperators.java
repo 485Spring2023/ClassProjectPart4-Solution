@@ -29,7 +29,7 @@ public interface RelationalAlgebraOperators {
 
 
   Iterator join(Iterator outerIterator, Iterator innerIterator,
-                ComparisonPredicate predicate, String[] attrNames);
+                ComparisonPredicate predicate, Set<String> attrNames);
 
 
   /**

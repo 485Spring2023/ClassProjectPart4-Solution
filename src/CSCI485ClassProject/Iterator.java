@@ -29,14 +29,15 @@ public class Iterator {
 
   public Record next() {return null;}
 
-  public Transaction getTransaction() {return null;}
+  public String getTableName() {
+    return "";
+  }
 
-  public String getTableName() {return "";}
+  public Transaction getTransaction() {return null;}
 
   public void close() {}
 
   // copy an iterator that seeks just initialized
   public void resetToStart() {
-    // TODO: override this method for all iterators
   }
 }

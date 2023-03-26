@@ -3,7 +3,6 @@ package CSCI485ClassProject.iterators;
 import CSCI485ClassProject.Cursor;
 import CSCI485ClassProject.Iterator;
 import CSCI485ClassProject.Records;
-import CSCI485ClassProject.TableManager;
 import CSCI485ClassProject.fdb.FDBHelper;
 import CSCI485ClassProject.models.Record;
 import com.apple.foundationdb.Database;
@@ -21,7 +20,6 @@ import static CSCI485ClassProject.DBConf.TABLE_TEMP_STORE;
 
 public class ProjectIterator extends Iterator {
   private Records records;
-  private TableManager tableManager;
 
   private Transaction tx;
 
@@ -31,8 +29,9 @@ public class ProjectIterator extends Iterator {
   private boolean isDuplicateFree;
   private DirectorySubspace tempDirectoryForDuplicateFree;
   private AsyncIterator<KeyValue> duplicateFreeKVIterator;
+  private Tuple baseDuplicateFreeKeyPrefix;
 
-  private boolean isIteratorReachEOF = false;
+  private boolean isIteratorReachToEOF = false;
 
   // the records may come from the iterator
   private Iterator sourceIterator = null;
@@ -40,37 +39,56 @@ public class ProjectIterator extends Iterator {
   private Cursor cursor = null;
 
 
-  public ProjectIterator(TableManager tblManager, Records records, String tableName, String attrName, boolean isDuplicateFree) {
-    this.tableManager = tblManager;
+  public ProjectIterator(Records records, String tableName, String attrName, boolean isDuplicateFree) {
     this.records = records;
     this.attrName = attrName;
     this.isDuplicateFree = isDuplicateFree;
 
     cursor = records.openCursor(tableName, Cursor.Mode.READ);
+    tx = cursor.getTx();
     if (isDuplicateFree) {
       makeRecordsDuplicateFree();
     }
   }
 
-  public ProjectIterator(TableManager tblManager, Records records, Iterator sourceIterator, String attrName, boolean isDuplicateFree) {
-    this.tableManager = tblManager;
+  public ProjectIterator(Records records, Iterator sourceIterator, String attrName, boolean isDuplicateFree) {
     this.records = records;
     this.attrName = attrName;
     this.isDuplicateFree = isDuplicateFree;
 
     this.sourceIterator = sourceIterator;
+    this.tx = sourceIterator.getTransaction();
+
     if (isDuplicateFree) {
       makeRecordsDuplicateFree();
     }
   }
 
+  @Override
+  public void resetToStart() {
+    if (isDuplicateFree) {
+      // reset the tempTable iterator
+      duplicateFreeKVIterator = tx.getRange(Range.startsWith(tempDirectoryForDuplicateFree.pack(baseDuplicateFreeKeyPrefix))).iterator();
+    } else {
+      if (sourceIterator != null) {
+        sourceIterator.resetToStart();
+      } else {
+        String tableName = cursor.getTableName();
+        cursor = records.openCursor(tableName, Cursor.Mode.READ);
+        cursor.setTx(tx);
+      }
+    }
+    isIteratorReachToEOF = false;
+    isCursorInitialized = false;
+  }
+
   private Record nextRawRecord() {
-    if (isIteratorReachEOF) {
+    if (isIteratorReachToEOF) {
       return null;
     }
 
     Record res = null;
-    if (isDuplicateFree) {
+    if (isDuplicateFree && duplicateFreeKVIterator != null) {
       if (duplicateFreeKVIterator.hasNext()) {
         KeyValue kv = duplicateFreeKVIterator.next();
         Tuple keyTuple = tempDirectoryForDuplicateFree.unpack(kv.getKey());
@@ -92,8 +110,10 @@ public class ProjectIterator extends Iterator {
     }
 
     if (res == null) {
-      isIteratorReachEOF = true;
-      close();
+      if (!isDuplicateFree || duplicateFreeKVIterator != null) {
+        isIteratorReachToEOF = true;
+        close();
+      }
     }
     return res;
   }
@@ -110,9 +130,7 @@ public class ProjectIterator extends Iterator {
 
     if (isDuplicateFree) {
       // do the duplication checking with the previous record
-      if (!duplicateFreeKVIterator.hasNext()) {
-        res = rawRecord;
-      }
+      res = rawRecord;
     } else {
       // projects the required attribute out.
       while (rawRecord != null) {
@@ -123,6 +141,7 @@ public class ProjectIterator extends Iterator {
         } else {
           res = new Record();
           res.setAttrNameAndValue(attrName, val);
+          break;
         }
       }
     }
@@ -159,39 +178,37 @@ public class ProjectIterator extends Iterator {
 
   private void makeRecordsDuplicateFree() {
     // remove the temporary table first
-    // TODO: simply writes the attr array
-
     Database db = FDBHelper.initialization();
 
     // open a transaction to write attr in
     Transaction tx = FDBHelper.openTransaction(db);
     List<String> tempPath = new ArrayList<>();
     tempPath.add(TABLE_TEMP_STORE);
-    tempPath.add(getTableName());
 
     // open the directory
     tempDirectoryForDuplicateFree = FDBHelper.createOrOpenSubspace(tx, tempPath);
 
     // the key is (attrName, attrVal), value is empty
-    Tuple baseKeyTuple = new Tuple().add(attrName);
+    // key is identified by the transaction committed version
+    baseDuplicateFreeKeyPrefix = new Tuple().add(tx.getReadVersion().join());
     Tuple valTuple = new Tuple();
-
     Record rawRecord = nextRawRecord();
     while (rawRecord != null) {
       Object val = rawRecord.getValueForGivenAttrName(attrName);
       if (val != null) {
         // put this val in the FDB
-        Tuple keyTuple = baseKeyTuple.addObject(val);
+        Tuple keyTuple = baseDuplicateFreeKeyPrefix.addObject(val);
         tx.set(tempDirectoryForDuplicateFree.pack(keyTuple), valTuple.pack());
       }
       rawRecord = nextRawRecord();
     }
 
-    // TODO: thinking how to use Transaction visibility
-    tx.commit();
-
+    FDBHelper.commitTransaction(tx);
     // open an iterator for that newly-added guys
-    tx = FDBHelper.openTransaction(db);
-    duplicateFreeKVIterator = tx.getRange(Range.startsWith(tempDirectoryForDuplicateFree.pack(baseKeyTuple))).iterator();
+    this.tx = FDBHelper.openTransaction(db);
+    duplicateFreeKVIterator = this.tx.getRange(Range.startsWith(tempDirectoryForDuplicateFree.pack(baseDuplicateFreeKeyPrefix))).iterator();
   }
+
+
+
 }
