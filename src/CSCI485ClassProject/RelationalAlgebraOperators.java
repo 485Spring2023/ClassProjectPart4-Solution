@@ -1,6 +1,6 @@
 package CSCI485ClassProject;
 
-import CSCI485ClassProject.models.AssignmentPredicate;
+import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.ComparisonPredicate;
 import CSCI485ClassProject.models.Record;
 
@@ -32,30 +32,16 @@ public interface RelationalAlgebraOperators {
                 ComparisonPredicate predicate, Set<String> attrNames);
 
 
-  /**
-   * insert operator. Inserts new records pointed by the cursor to a target table.
-   *
-   * If the given tableName does not exist, the table will be created.
-   *
-   * @param tableName the target tableName
-   * @param cursor the cursor that points to a set of records
-   * @param isGettingLast true if the input cursor is initialized by getLast
-   * @return StatusCode
-   */
-  StatusCode insert(String tableName, Cursor cursor, boolean isGettingLast);
+  public StatusCode insert(String tableName, Record record, String[] primaryKeys);
 
-  /**
-   * update operator.
-   *
-   * @param tableName the target tableName
-   * @return StatusCode
-   */
-  StatusCode update(String tableName, AssignmentPredicate assignPredicate, ComparisonPredicate compPredicate);
+  // dataSourceIterator should be the select iterator
+  // if the data source iterator is null, update all records in the table
+  public StatusCode update(String tableName, AssignmentExpression assignPredicate, Iterator dataSourceIterator);
 
-  /**
-   * delete operator. Deletes existing records pointed by the cursor of a target table.
-   * @param tableName the target tableName
-   * @return StatusCode
-   */
-  StatusCode delete(String tableName, ComparisonPredicate comparisonPredicate);
+
+  // iterator comes from the select
+  // if the iterator is null, delete all records in the table
+  public StatusCode delete(String tableName, Iterator iterator);
+
 }
+

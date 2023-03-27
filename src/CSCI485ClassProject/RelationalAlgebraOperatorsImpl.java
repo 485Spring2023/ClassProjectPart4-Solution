@@ -4,13 +4,22 @@ import CSCI485ClassProject.fdb.FDBHelper;
 import CSCI485ClassProject.iterators.JoinIterator;
 import CSCI485ClassProject.iterators.ProjectIterator;
 import CSCI485ClassProject.iterators.SelectIterator;
-import CSCI485ClassProject.models.AssignmentPredicate;
+import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.ComparisonPredicate;
 import CSCI485ClassProject.models.Record;
 import com.apple.foundationdb.Database;
+import com.apple.foundationdb.Transaction;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static CSCI485ClassProject.StatusCode.OPERATOR_INSERT_PRIMARY_KEYS_INVALID;
+import static CSCI485ClassProject.StatusCode.OPERATOR_INSERT_RECORD_INVALID;
+import static CSCI485ClassProject.StatusCode.PREDICATE_OR_EXPRESSION_VALID;
+import static CSCI485ClassProject.StatusCode.SUCCESS;
 
 // your codes
 public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperators {
@@ -44,7 +53,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   @Override
   public Iterator select(String tableName, ComparisonPredicate predicate, boolean isUsingIndex) {
-    if (predicate.validate() != StatusCode.PREDICATE_VALID) {
+    if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
     Iterator iterator = new SelectIterator(records, tableName, predicate, isUsingIndex);
@@ -53,7 +62,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   @Override
   public Set<Record> simpleSelect(String tableName, ComparisonPredicate predicate, boolean isUsingIndex) {
-    if (predicate.validate() != StatusCode.PREDICATE_VALID) {
+    if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
     Iterator iterator = select(tableName, predicate, isUsingIndex);
@@ -87,7 +96,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   @Override
   public Iterator join(Iterator iterator1, Iterator iterator2, ComparisonPredicate predicate, Set<String> attrNames) {
-    if (predicate.validate() != StatusCode.PREDICATE_VALID) {
+    if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
     Iterator iterator = new JoinIterator(iterator1, iterator2, predicate, attrNames);
@@ -95,17 +104,100 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   @Override
-  public StatusCode insert(String tableName, Cursor cursor, boolean isGettingLast) {
-    return null;
+  public StatusCode insert(String tableName, Record record, String[] primaryKeys) {
+    if (primaryKeys == null || primaryKeys.length == 0) {
+      return OPERATOR_INSERT_PRIMARY_KEYS_INVALID;
+    }
+
+    Set<String> primaryKeySet = new HashSet<>();
+    for (int i = 0; i < primaryKeys.length; i++) {
+      String primaryKey = primaryKeys[i];
+      primaryKeySet.add(primaryKey);
+      if (record.getValueForGivenAttrName(primaryKey) == null) {
+        return OPERATOR_INSERT_RECORD_INVALID;
+      }
+    }
+
+    List<Object> primaryKeyVals = new ArrayList<>();
+    Set<String> nonPKAttributes = new HashSet<>();
+    List<Object> nonPKAttributeVals = new ArrayList<>();
+    Map<String, Record.Value> attrMap = record.getMapAttrNameToValue();
+    for (Map.Entry<String, Record.Value> attrEntry : attrMap.entrySet()) {
+      String attrName = attrEntry.getKey();
+      Object attrVal = attrEntry.getValue().getValue();
+      if (!primaryKeySet.contains(attrName)) {
+        // non-pk attribute
+        nonPKAttributes.add(attrName);
+        nonPKAttributeVals.add(attrVal);
+      } else {
+        primaryKeyVals.add(attrVal);
+      }
+    }
+
+    // call records API
+    return records.insertRecord(tableName, primaryKeySet.toArray(new String[0]), primaryKeyVals.toArray(new Object[0]),
+        nonPKAttributes.toArray(new String[0]), nonPKAttributeVals.toArray(new Object[0]));
   }
 
   @Override
-  public StatusCode update(String tableName, AssignmentPredicate assignPredicate, ComparisonPredicate compPredicate) {
-    return null;
+  public StatusCode update(String tableName, AssignmentExpression assignmentExpression, Iterator dataSourceIterator) {
+    if (assignmentExpression.validate() != PREDICATE_OR_EXPRESSION_VALID) {
+      return assignmentExpression.validate();
+    }
+
+    if (dataSourceIterator == null) {
+      // update all records in the table
+      dataSourceIterator = select(tableName, new ComparisonPredicate(), false);
+      if (dataSourceIterator == null) {
+        return StatusCode.OPERATOR_UPDATE_ITERATOR_INVALID;
+      }
+    }
+
+    if (!tableName.equals(dataSourceIterator.getTableName())) {
+      return StatusCode.OPERATOR_UPDATE_ITERATOR_TABLENAME_UNMATCHED;
+    }
+
+    while (true) {
+      Record record = dataSourceIterator.next();
+      if (record == null) {
+        break;
+      }
+
+      StatusCode status = dataSourceIterator.updateRecord(assignmentExpression);
+      if (status != SUCCESS) {
+        return status;
+      }
+    }
+
+    return StatusCode.SUCCESS;
   }
 
   @Override
-  public StatusCode delete(String tableName, ComparisonPredicate comparisonPredicate) {
-    return null;
+  public StatusCode delete(String tableName, Iterator dataSourceIterator) {
+    if (dataSourceIterator == null) {
+      dataSourceIterator = select(tableName, new ComparisonPredicate(), false);
+      if (dataSourceIterator == null) {
+        return StatusCode.OPERATOR_DELETE_ITERATOR_INVALID;
+      }
+    }
+
+    if (!tableName.equals(dataSourceIterator.getTableName())) {
+      return StatusCode.OPERATOR_DELETE_ITERATOR_TABLENAME_UNMATCHED;
+    }
+
+    while (true) {
+      Record record = dataSourceIterator.next();
+      if (record == null) {
+        break;
+      }
+
+      StatusCode status = dataSourceIterator.deleteRecord();
+      if (status != SUCCESS) {
+        return status;
+      }
+    }
+
+    return StatusCode.SUCCESS;
   }
+
 }

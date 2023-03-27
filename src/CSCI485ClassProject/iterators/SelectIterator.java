@@ -3,9 +3,16 @@ package CSCI485ClassProject.iterators;
 import CSCI485ClassProject.Cursor;
 import CSCI485ClassProject.Iterator;
 import CSCI485ClassProject.Records;
+import CSCI485ClassProject.StatusCode;
+import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.ComparisonPredicate;
 import CSCI485ClassProject.models.Record;
 import com.apple.foundationdb.Transaction;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SelectIterator extends Iterator {
   private final Records records;
@@ -24,13 +31,17 @@ public class SelectIterator extends Iterator {
     this.compPredicate = compPredicate;
     this.isUsingIndex = isUsingIndex;
 
-    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.NONE || compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTR) {
+    Cursor.Mode cursorMode = Cursor.Mode.READ;
+    if (this.getMode() == Mode.READ_WRITE) {
+      cursorMode = Cursor.Mode.READ_WRITE;
+    }
+    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.NONE || compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTRS) {
       // if its NONE predicate or predicate referencing two attributes, simply open a scan cursor
-      cursor = records.openCursor(tableName, Cursor.Mode.READ);
+      cursor = records.openCursor(tableName, cursorMode);
     } else {
-      // its an ONE_ATTR predicate, open a cursor that binds to a certain attribute
+      // if its ONE_ATTR predicate, open a cursor that binds to a certain attribute
       cursor = records.openCursor(tableName, compPredicate.getLeftHandSideAttrName(), compPredicate.getRightHandSideValue(), compPredicate.getOperator(),
-          Cursor.Mode.READ, isUsingIndex);
+          cursorMode, isUsingIndex);
     }
 
     tx = cursor.getTx();
@@ -44,7 +55,7 @@ public class SelectIterator extends Iterator {
   @Override
   public void resetToStart() {
     String tableName = getTableName();
-    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.NONE || compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTR) {
+    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.NONE || compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTRS) {
       // if its NONE predicate or predicate referencing two attributes, simply open a scan cursor
       cursor = records.openCursor(tableName, Cursor.Mode.READ);
     } else {
@@ -72,7 +83,7 @@ public class SelectIterator extends Iterator {
     }
 
 
-    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTR) {
+    if (compPredicate.getPredicateType() == ComparisonPredicate.Type.TWO_ATTRS) {
       while (currentRecord != null && !compPredicate.isRecordQualified(currentRecord)) {
         currentRecord = records.getNext(cursor);
       }
@@ -94,5 +105,36 @@ public class SelectIterator extends Iterator {
   @Override
   public void close() {
     records.commitCursor(cursor);
+  }
+
+  @Override
+  public StatusCode deleteRecord() {
+    if (getMode() != Mode.READ_WRITE) {
+      return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
+    }
+
+    if (!isCursorInitialized) {
+      return StatusCode.ITERATOR_NOT_POINTED_TO_ANY_RECORD;
+    }
+
+    return records.deleteRecord(cursor);
+  }
+
+  @Override
+  public StatusCode updateRecord(AssignmentExpression assignExp) {
+    if (getMode() != Mode.READ_WRITE) {
+      return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
+    }
+
+    if (!isCursorInitialized) {
+      return StatusCode.ITERATOR_NOT_POINTED_TO_ANY_RECORD;
+    }
+
+    Record record = cursor.getCurrentRecord();
+    Map<String, Object> updatedRes = assignExp.evaluate(record);
+    List<String> attrs = new ArrayList<>(updatedRes.keySet());
+    List<Object> attrVals = new ArrayList<>(updatedRes.values());
+
+    return records.updateRecord(cursor, attrs.toArray(new String[0]), attrVals.toArray(new Object[0]));
   }
 }

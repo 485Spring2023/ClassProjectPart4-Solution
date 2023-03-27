@@ -42,8 +42,6 @@ public class Cursor {
   private AsyncIterator<KeyValue> iterator = null;
 
   private Record currentRecord = null;
-  // used by the col storage
-  private String currentAttributeName;
 
   private Transaction tx;
 
@@ -261,6 +259,10 @@ public class Cursor {
       }
     }
     return record;
+  }
+
+  public Record getCurrentRecord() {
+    return currentRecord;
   }
 
   public StatusCode updateCurrentRecord(String[] attrNames, Object[] attrValues) {

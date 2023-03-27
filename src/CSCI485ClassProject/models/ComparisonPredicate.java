@@ -2,14 +2,14 @@ package CSCI485ClassProject.models;
 
 import CSCI485ClassProject.StatusCode;
 
-import static CSCI485ClassProject.StatusCode.PREDICATE_NOT_VALID;
+import static CSCI485ClassProject.StatusCode.PREDICATE_OR_EXPRESSION_INVALID;
 
 public class ComparisonPredicate {
 
   public enum Type {
     NONE, // meaning no predicate
     ONE_ATTR, // only one attribute is referenced, e.g. Salary < 1500, Name == "Bob"
-    TWO_ATTR, // two attributes are referenced, e.g. Salary >= 1.5 * Age
+    TWO_ATTRS, // two attributes are referenced, e.g. Salary >= 1.5 * Age
   }
 
   private Type predicateType = Type.NONE;
@@ -76,7 +76,7 @@ public class ComparisonPredicate {
 
   // e.g. Salary == 1.1 * Age
   public ComparisonPredicate(String leftHandSideAttrName, AttributeType leftHandSideAttrType, ComparisonOperator operator, String rightHandSideAttrName, AttributeType rightHandSideAttrType, Object rightHandSideValue, AlgebraicOperator rightHandSideOperator) {
-    predicateType = Type.TWO_ATTR;
+    predicateType = Type.TWO_ATTRS;
     this.leftHandSideAttrName = leftHandSideAttrName;
     this.leftHandSideAttrType = leftHandSideAttrType;
     this.operator = operator;
@@ -89,26 +89,26 @@ public class ComparisonPredicate {
   // validate the predicate, return PREDICATE_VALID if the predicate is valid
   public StatusCode validate() {
     if (predicateType == Type.NONE) {
-      return StatusCode.PREDICATE_VALID;
+      return StatusCode.PREDICATE_OR_EXPRESSION_VALID;
     } else if (predicateType == Type.ONE_ATTR) {
       // e.g. Salary > 2000
       if (leftHandSideAttrType == AttributeType.NULL
           || (leftHandSideAttrType == AttributeType.INT && !(rightHandSideValue instanceof Integer) && !(rightHandSideValue instanceof Long))
           || (leftHandSideAttrType == AttributeType.DOUBLE && !(rightHandSideValue instanceof Double) && !(rightHandSideValue instanceof Float))
           || (leftHandSideAttrType == AttributeType.VARCHAR && !(rightHandSideValue instanceof String))) {
-          return StatusCode.PREDICATE_NOT_VALID;
+          return StatusCode.PREDICATE_OR_EXPRESSION_INVALID;
       }
-    } else if (predicateType == Type.TWO_ATTR) {
+    } else if (predicateType == Type.TWO_ATTRS) {
       // e.g. Salary >= 10 * Age
       if (leftHandSideAttrType == AttributeType.NULL || rightHandSideAttrType == AttributeType.NULL
           || (leftHandSideAttrType == AttributeType.VARCHAR || rightHandSideAttrType == AttributeType.VARCHAR)
           || (leftHandSideAttrType != rightHandSideAttrType)
           || (leftHandSideAttrType == AttributeType.INT && !(rightHandSideValue instanceof Integer) && !(rightHandSideValue instanceof Long)
           || (leftHandSideAttrType == AttributeType.DOUBLE && !(rightHandSideValue instanceof Double) && !(rightHandSideValue instanceof Float)))) {
-        return PREDICATE_NOT_VALID;
+        return PREDICATE_OR_EXPRESSION_INVALID;
       }
     }
-    return StatusCode.PREDICATE_VALID;
+    return StatusCode.PREDICATE_OR_EXPRESSION_VALID;
   }
 
   // verify that two records are qualified
@@ -117,11 +117,11 @@ public class ComparisonPredicate {
       return false;
     }
 
-    if (validate() != StatusCode.PREDICATE_VALID) {
+    if (validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return false;
     }
 
-    if (predicateType != Type.TWO_ATTR) {
+    if (predicateType != Type.TWO_ATTRS) {
       return false;
     }
 
@@ -132,11 +132,11 @@ public class ComparisonPredicate {
     }
 
     if (leftHandSideAttrType == AttributeType.INT) {
-      Object resultVal = AlgebraicOperatorUtils.computeTwoINT(val2, rightHandSideValue, rightHandSideOperator);
-      return ComparisonPredicateUtils.compareTwoINT(val1, resultVal, operator);
+      Object resultVal = AlgebraUtils.computeTwoINT(val2, rightHandSideValue, rightHandSideOperator);
+      return ComparisonUtils.compareTwoINT(val1, resultVal, operator);
     } else {
-      Object resultVal = AlgebraicOperatorUtils.computeTwoDOUBLE(val2, rightHandSideValue, rightHandSideOperator);
-      return ComparisonPredicateUtils.compareTwoDOUBLE(val1, resultVal, operator);
+      Object resultVal = AlgebraUtils.computeTwoDOUBLE(val2, rightHandSideValue, rightHandSideOperator);
+      return ComparisonUtils.compareTwoDOUBLE(val1, resultVal, operator);
     }
   }
 
@@ -146,7 +146,7 @@ public class ComparisonPredicate {
       return false;
     }
 
-    if (validate() != StatusCode.PREDICATE_VALID) {
+    if (validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return false;
     }
 
@@ -163,26 +163,26 @@ public class ComparisonPredicate {
     if (predicateType == Type.ONE_ATTR) {
       // e.g. Salary >= 2000
       if (leftHandSideAttrType == AttributeType.INT) {
-        return ComparisonPredicateUtils.compareTwoINT(leftVal, rightHandSideValue, operator);
+        return ComparisonUtils.compareTwoINT(leftVal, rightHandSideValue, operator);
       } else if (leftHandSideAttrType == AttributeType.DOUBLE) {
-        return ComparisonPredicateUtils.compareTwoDOUBLE(leftVal, rightHandSideValue, operator);
+        return ComparisonUtils.compareTwoDOUBLE(leftVal, rightHandSideValue, operator);
       } else if (leftHandSideAttrType == AttributeType.VARCHAR) {
-        return ComparisonPredicateUtils.compareTwoVARCHAR(leftVal, rightHandSideValue, operator);
+        return ComparisonUtils.compareTwoVARCHAR(leftVal, rightHandSideValue, operator);
       }
     } else {
       // TWO_ATTR
       // check if the rightHandSideAttr exists in the record
       if (record.getValueForGivenAttrName(rightHandSideAttrName) == null) {
-        // leftHandSideAttr does not exist in the record, record is unqualified
+        // rightHandSideAttr does not exist in the record, record is unqualified
         return false;
       }
       Object rightVal = record.getValueForGivenAttrName(rightHandSideAttrName);
       if (leftHandSideAttrType == AttributeType.INT) {
-        Object resultVal = AlgebraicOperatorUtils.computeTwoINT(rightVal, rightHandSideValue, rightHandSideOperator);
-        return ComparisonPredicateUtils.compareTwoINT(leftVal, resultVal, operator);
+        Object resultVal = AlgebraUtils.computeTwoINT(rightVal, rightHandSideValue, rightHandSideOperator);
+        return ComparisonUtils.compareTwoINT(leftVal, resultVal, operator);
       } else {
-        Object resultVal = AlgebraicOperatorUtils.computeTwoDOUBLE(rightVal, rightHandSideValue, rightHandSideOperator);
-        return ComparisonPredicateUtils.compareTwoDOUBLE(leftVal, resultVal, operator);
+        Object resultVal = AlgebraUtils.computeTwoDOUBLE(rightVal, rightHandSideValue, rightHandSideOperator);
+        return ComparisonUtils.compareTwoDOUBLE(leftVal, resultVal, operator);
       }
     }
     return false;

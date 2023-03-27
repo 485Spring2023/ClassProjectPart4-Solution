@@ -44,7 +44,12 @@ public class ProjectIterator extends Iterator {
     this.attrName = attrName;
     this.isDuplicateFree = isDuplicateFree;
 
-    cursor = records.openCursor(tableName, Cursor.Mode.READ);
+    Cursor.Mode cursorMode = Cursor.Mode.READ;
+    if (this.getMode() == Mode.READ_WRITE) {
+      cursorMode = Cursor.Mode.READ_WRITE;
+    }
+
+    cursor = records.openCursor(tableName, cursorMode);
     tx = cursor.getTx();
     if (isDuplicateFree) {
       makeRecordsDuplicateFree();

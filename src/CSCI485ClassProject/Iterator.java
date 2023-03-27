@@ -1,31 +1,25 @@
 package CSCI485ClassProject;
 
-import CSCI485ClassProject.models.ComparisonPredicate;
+import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.Record;
 import com.apple.foundationdb.Transaction;
 
 public class Iterator {
 
-  public enum IteratorType {
-    SELECT,
-    PROJECT,
-    JOIN
+  public enum Mode {
+    READ,
+    READ_WRITE
   }
-  // iterator type
-  private IteratorType iteratorType;
 
-  // used by select
-  private ComparisonPredicate selectCompPredicate = null;
-  private Cursor selectCursor = null;
+  private Mode mode = Mode.READ;
 
-  // used by the project operator
-  private Cursor projectCursor = null;
+  public Mode getMode() {
+    return mode;
+  }
 
-  // used by join operator
-  private Cursor joinOuterCursor = null;
-  private Cursor joinInnerCursor = null;
-  private String[] joinAttributesToProject = null; // non-null meaning the join operator projects certain attributes
-
+  public void setMode(Mode mode) {
+    this.mode = mode;
+  }
 
   public Record next() {return null;}
 
@@ -35,9 +29,16 @@ public class Iterator {
 
   public Transaction getTransaction() {return null;}
 
+  public StatusCode deleteRecord() {
+    return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
+  }
+
+  public StatusCode updateRecord(AssignmentExpression assignExp) {
+    return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
+  }
+
   public void close() {}
 
-  // copy an iterator that seeks just initialized
-  public void resetToStart() {
-  }
+  // seeks just initialized
+  public void resetToStart() {}
 }

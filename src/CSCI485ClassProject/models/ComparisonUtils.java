@@ -1,6 +1,6 @@
 package CSCI485ClassProject.models;
 
-public class ComparisonPredicateUtils {
+public class ComparisonUtils {
   public static boolean compareTwoINT(Object obj1, Object obj2, ComparisonOperator cmp) {
     long val1;
     if (obj1 instanceof Integer) {

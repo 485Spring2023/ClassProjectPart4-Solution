@@ -1,6 +1,6 @@
 package CSCI485ClassProject.models;
 
-public class AlgebraicOperatorUtils {
+public class AlgebraUtils {
   public static double computeTwoDOUBLE(Object val1, Object val2, AlgebraicOperator operator) {
     double v1 = (Double) val1;
     double v2 = (Double) val2;
