@@ -112,4 +112,15 @@ public class JoinIterator extends Iterator {
     isIteratorReachToEOF = false;
   }
 
+  @Override
+  public void commit() {
+    outerIterator.commit();
+    innerIterator.commit();
+  }
+
+  @Override
+  public void abort() {
+    outerIterator.abort();
+    innerIterator.abort();
+  }
 }

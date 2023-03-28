@@ -7,7 +7,7 @@ import CSCI485ClassProject.models.Record;
 import java.util.Set;
 
 public interface RelationalAlgebraOperators {
-  Iterator select(String tableName, ComparisonPredicate predicate, boolean isUsingIndex);
+  Iterator select(String tableName, ComparisonPredicate predicate, Iterator.Mode mode, boolean isUsingIndex);
 
   Set<Record> simpleSelect(String tableName, ComparisonPredicate predicate, boolean isUsingIndex);
 

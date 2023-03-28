@@ -117,7 +117,6 @@ public class ProjectIterator extends Iterator {
     if (res == null) {
       if (!isDuplicateFree || duplicateFreeKVIterator != null) {
         isIteratorReachToEOF = true;
-        close();
       }
     }
     return res;
@@ -164,11 +163,28 @@ public class ProjectIterator extends Iterator {
   }
 
   @Override
-  public void close() {
+  public void commit() {
+    if (duplicateFreeKVIterator != null) {
+      duplicateFreeKVIterator.cancel();
+    }
     if (sourceIterator != null) {
-      sourceIterator.close();
-    } else if (cursor != null){
+      sourceIterator.commit();
+    }
+    if (cursor != null){
       records.commitCursor(cursor);
+    }
+  }
+
+  @Override
+  public void abort() {
+    if (duplicateFreeKVIterator != null) {
+      duplicateFreeKVIterator.cancel();
+    }
+    if (sourceIterator != null) {
+      sourceIterator.abort();
+    }
+    if (cursor != null) {
+      records.abortCursor(cursor);
     }
   }
 

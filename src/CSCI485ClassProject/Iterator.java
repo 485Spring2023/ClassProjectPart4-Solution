@@ -6,7 +6,7 @@ import com.apple.foundationdb.Transaction;
 
 public class Iterator {
 
-  public enum Mode {
+  public static enum Mode {
     READ,
     READ_WRITE
   }
@@ -37,7 +37,9 @@ public class Iterator {
     return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
   }
 
-  public void close() {}
+  public void commit() {}
+
+  public void abort() {}
 
   // seeks just initialized
   public void resetToStart() {}

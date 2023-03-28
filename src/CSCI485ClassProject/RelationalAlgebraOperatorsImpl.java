@@ -48,15 +48,16 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
       res.add(rec);
     }
 
+    iterator.commit();
     return res;
   }
 
   @Override
-  public Iterator select(String tableName, ComparisonPredicate predicate, boolean isUsingIndex) {
+  public Iterator select(String tableName, ComparisonPredicate predicate, Iterator.Mode mode, boolean isUsingIndex) {
     if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
-    Iterator iterator = new SelectIterator(records, tableName, predicate, isUsingIndex);
+    Iterator iterator = new SelectIterator(records, tableName, predicate, mode, isUsingIndex);
     return iterator;
   }
 
@@ -65,7 +66,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
-    Iterator iterator = select(tableName, predicate, isUsingIndex);
+    Iterator iterator = select(tableName, predicate, Iterator.Mode.READ, isUsingIndex);
     return getResultSetFromIterator(iterator);
   }
 
@@ -147,7 +148,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
     if (dataSourceIterator == null) {
       // update all records in the table
-      dataSourceIterator = select(tableName, new ComparisonPredicate(), false);
+      dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ_WRITE, false);
       if (dataSourceIterator == null) {
         return StatusCode.OPERATOR_UPDATE_ITERATOR_INVALID;
       }
@@ -169,13 +170,14 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
       }
     }
 
+    dataSourceIterator.commit();
     return StatusCode.SUCCESS;
   }
 
   @Override
   public StatusCode delete(String tableName, Iterator dataSourceIterator) {
     if (dataSourceIterator == null) {
-      dataSourceIterator = select(tableName, new ComparisonPredicate(), false);
+      dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ_WRITE, false);
       if (dataSourceIterator == null) {
         return StatusCode.OPERATOR_DELETE_ITERATOR_INVALID;
       }
@@ -197,6 +199,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
       }
     }
 
+    dataSourceIterator.commit();
     return StatusCode.SUCCESS;
   }
 

@@ -26,10 +26,11 @@ public class SelectIterator extends Iterator {
   private boolean isCursorInitialized = false;
   private boolean isIteratorReachToEOF = false;
 
-  public SelectIterator(Records records, String tableName, ComparisonPredicate compPredicate, boolean isUsingIndex) {
+  public SelectIterator(Records records, String tableName, ComparisonPredicate compPredicate, Iterator.Mode mode, boolean isUsingIndex) {
     this.records = records;
     this.compPredicate = compPredicate;
     this.isUsingIndex = isUsingIndex;
+    this.setMode(mode);
 
     Cursor.Mode cursorMode = Cursor.Mode.READ;
     if (this.getMode() == Mode.READ_WRITE) {
@@ -103,8 +104,13 @@ public class SelectIterator extends Iterator {
 
 
   @Override
-  public void close() {
+  public void commit() {
     records.commitCursor(cursor);
+  }
+
+  @Override
+  public void abort() {
+    records.abortCursor(cursor);
   }
 
   @Override

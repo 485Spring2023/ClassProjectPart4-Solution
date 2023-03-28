@@ -183,7 +183,6 @@ public class Part4Test {
     assertEquals(1, tables.size());
     assertEquals(EmployeeTable, tables.get(EmployeeTableName));
 
-
     Random randGenerator = new Random(randSeed);
     Set<Record> expectSet = new HashSet<>();
     for (int i = 0; i < initialNumberOfRecords; i++) {
@@ -205,11 +204,11 @@ public class Part4Test {
     }
 
     ComparisonPredicate predicate = new ComparisonPredicate(Salary, AttributeType.INT, ComparisonOperator.LESS_THAN_OR_EQUAL_TO, 25);
-    Iterator selectRes = relAlgOperators.select(EmployeeTableName, predicate, false);
+    Iterator selectRes = relAlgOperators.select(EmployeeTableName, predicate, Iterator.Mode.READ, false);
 
     assertNotNull(selectRes);
     randGenerator = new Random(randSeed);
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i <= 25; i++) {
       long ssn = i;
       long dno = getDno(randGenerator, dnoLB, dnoUB);
       Record expectRecord = getExpectedEmployeeRecord(ssn, dno);
@@ -217,6 +216,8 @@ public class Part4Test {
 
       assertEquals(expectRecord, actualRecord);
     }
+    assertNull(selectRes.next());
+    selectRes.commit();
 
     predicate =
         new ComparisonPredicate(Salary, AttributeType.INT, ComparisonOperator.LESS_THAN,
@@ -227,7 +228,9 @@ public class Part4Test {
     predicate =
         new ComparisonPredicate(Salary, AttributeType.INT, ComparisonOperator.LESS_THAN,
             Name, AttributeType.VARCHAR, 2, AlgebraicOperator.PRODUCT);
-    assertNull(relAlgOperators.select(EmployeeTableName, predicate, false));
+    assertNull(relAlgOperators.select(EmployeeTableName, predicate, Iterator.Mode.READ_WRITE, false));
+
+    System.out.println("Test1 passed!");
   }
 
 
@@ -258,7 +261,7 @@ public class Part4Test {
     assertEquals(expectDnoSet, actualDnoSet);
 
     ComparisonPredicate predicate = new ComparisonPredicate(SSN, AttributeType.INT, ComparisonOperator.LESS_THAN, 50);
-    Iterator selectRes = relAlgOperators.select(EmployeeTableName, predicate, false);
+    Iterator selectRes = relAlgOperators.select(EmployeeTableName, predicate, Iterator.Mode.READ_WRITE, false);
     assertNotNull(selectRes);
 
 
@@ -274,14 +277,16 @@ public class Part4Test {
       actualEmailSet.add((String) record.getValueForGivenAttrName(Email));
     }
 
+    assertNull(emailRecordIterator.next());
+    emailRecordIterator.commit();
+
     assertEquals(expectedEmailSet, actualEmailSet);
+    System.out.println("Test2 passed!");
   }
 
   @Test
   public void unitTest3 () {
     // create the Department Table
-    TableMetadata DepartmentTable = new TableMetadata(DepartmentTableAttributeNames, DepartmentTableAttributeTypes,
-        DepartmentTablePKAttributes);
     assertEquals(StatusCode.SUCCESS, tableManager.createTable(DepartmentTableName,
         DepartmentTableAttributeNames, DepartmentTableAttributeTypes, DepartmentTablePKAttributes));
 
@@ -297,8 +302,8 @@ public class Part4Test {
     }
 
     ComparisonPredicate nonePredicate = new ComparisonPredicate();
-    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, nonePredicate, false);
-    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, nonePredicate, false);
+    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, nonePredicate, Iterator.Mode.READ, false);
+    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, nonePredicate, Iterator.Mode.READ, false);
 
     ComparisonPredicate joinPredicate =
         new ComparisonPredicate(DNO, AttributeType.INT, ComparisonOperator.EQUAL_TO, DNO, AttributeType.INT, 1, AlgebraicOperator.PRODUCT);
@@ -328,6 +333,8 @@ public class Part4Test {
     }
 
     assertEquals(expectedRecordSet, actualRecordSet);
+    joinResIterator.commit();
+    System.out.println("Test3 passed!");
   }
 
   @Test
@@ -338,7 +345,7 @@ public class Part4Test {
       assertEquals(StatusCode.SUCCESS, relAlgOperators.insert(DepartmentTableName, record, DepartmentTablePKAttributes));
     }
 
-    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, new ComparisonPredicate(), false);
+    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, new ComparisonPredicate(), Iterator.Mode.READ, false);
     assertNotNull(departmentIterator);
 
     for (int i = 0; i < initialNumberOfRecords + updatedNumberOfRecords; i++) {
@@ -346,16 +353,19 @@ public class Part4Test {
       Record expectedRecord = getExpectedDepartmentRecord(i);
       assertEquals(expectedRecord, record);
     }
+
+    assertNull(departmentIterator.next());
+    System.out.println("Test4 passed!");
   }
 
   @Test
   public void unitTest5() {
     AssignmentExpression salaryUpdateExpression =
         new AssignmentExpression(Salary, AttributeType.INT, Salary, AttributeType.INT, 2, AlgebraicOperator.PRODUCT);
-    assertEquals(StatusCode.SUCCESS, relAlgOperators.update(Salary, salaryUpdateExpression, null));
+    assertEquals(StatusCode.SUCCESS, relAlgOperators.update(EmployeeTableName, salaryUpdateExpression, null));
 
     // verify the updates
-    Iterator iterator = relAlgOperators.select(Salary, new ComparisonPredicate(), false);
+    Iterator iterator = relAlgOperators.select(EmployeeTableName, new ComparisonPredicate(), Iterator.Mode.READ, false);
     for (int i = 0; i < initialNumberOfRecords; i++) {
       long ssn = i;
       long salary = 2 * getSalary(ssn);
@@ -366,20 +376,21 @@ public class Part4Test {
     }
 
     assertNull(iterator.next());
+    iterator.commit();
 
     // get all employees that salary <= 80
     ComparisonPredicate compPredicate =
         new ComparisonPredicate(Salary, AttributeType.INT, ComparisonOperator.LESS_THAN_OR_EQUAL_TO, 80);
-    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, compPredicate, false);
+    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, compPredicate, Iterator.Mode.READ_WRITE, false);
     assertNotNull(employeeIterator);
 
     // make their salary = 4 * age
     salaryUpdateExpression =
-        new AssignmentExpression(Salary, AttributeType.INT, Age, AttributeType.INT, 2, AlgebraicOperator.PRODUCT);
+        new AssignmentExpression(Salary, AttributeType.INT, Age, AttributeType.INT, 4, AlgebraicOperator.PRODUCT);
 
     assertEquals(StatusCode.SUCCESS, relAlgOperators.update(EmployeeTableName, salaryUpdateExpression, employeeIterator));
     // verify the updates
-    iterator = relAlgOperators.select(Salary, new ComparisonPredicate(), false);
+    iterator = relAlgOperators.select(EmployeeTableName, new ComparisonPredicate(), Iterator.Mode.READ, false);
     for (int i = 0; i < initialNumberOfRecords; i++) {
       long ssn = i;
       long salary = 2 * getSalary(ssn);
@@ -396,6 +407,8 @@ public class Part4Test {
     }
 
     assertNull(iterator.next());
+    iterator.commit();
+    System.out.println("Test5 passed!");
   }
 
   @Test
@@ -404,28 +417,29 @@ public class Part4Test {
     ComparisonPredicate dnoEq40predicate =
         new ComparisonPredicate(DNO, AttributeType.INT, ComparisonOperator.EQUAL_TO, 40);
 
-    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, false);
+    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, Iterator.Mode.READ_WRITE, false);
     assertNotNull(departmentIterator);
 
     assertEquals(StatusCode.SUCCESS, relAlgOperators.delete(DepartmentTableName, departmentIterator));
-    // TODO: commit the iterator
 
     // verify the deletion
-    departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, false);
+    departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, Iterator.Mode.READ, false);
     assertNotNull(departmentIterator);
     assertNull(departmentIterator.next());
+    departmentIterator.commit();
 
-    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, false);
+
+    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, Iterator.Mode.READ_WRITE, false);
     assertNotNull(employeeIterator);
 
     assertEquals(StatusCode.SUCCESS, relAlgOperators.delete(EmployeeTableName, employeeIterator));
-    // TODO: commit the iterator
 
     // verify the deletion
-    employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, false);
+    employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, Iterator.Mode.READ, false);
     assertNotNull(employeeIterator);
     assertNull(employeeIterator.next());
+    employeeIterator.commit();
 
-
+    System.out.println("Test6 passed!");
   }
 }
