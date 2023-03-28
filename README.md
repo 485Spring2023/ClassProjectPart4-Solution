@@ -5,7 +5,7 @@ This repo is the base codes of the ClassProject of 2023Spring CSCI485.
 ## Getting Started
 You need to copy and paste the code of Part 1, 2 and 3 to this project. 
 Your codes need to be put under `src/CSCI485ClassProject/` and its subdirectories. 
-Once finished, you can verify it by running the unit test of Part1/Part2/Part3.
+Verify correctness by executing the unit test of Part1/Part2/Part3 successfully.
 
 ## Project Structure Overview
 
