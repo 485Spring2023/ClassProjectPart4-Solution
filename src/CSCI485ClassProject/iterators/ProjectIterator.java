@@ -5,7 +5,6 @@ import CSCI485ClassProject.Iterator;
 import CSCI485ClassProject.Records;
 import CSCI485ClassProject.fdb.FDBHelper;
 import CSCI485ClassProject.models.Record;
-import com.apple.foundationdb.Database;
 import com.apple.foundationdb.KeyValue;
 import com.apple.foundationdb.Range;
 import com.apple.foundationdb.Transaction;
@@ -97,7 +96,7 @@ public class ProjectIterator extends Iterator {
       if (duplicateFreeKVIterator.hasNext()) {
         KeyValue kv = duplicateFreeKVIterator.next();
         Tuple keyTuple = tempDirectoryForDuplicateFree.unpack(kv.getKey());
-        Object val = keyTuple.get(1);
+        Object val = keyTuple.get(0);
         res = new Record();
         res.setAttrNameAndValue(attrName, val);
       }
@@ -166,12 +165,14 @@ public class ProjectIterator extends Iterator {
   public void commit() {
     if (duplicateFreeKVIterator != null) {
       duplicateFreeKVIterator.cancel();
-    }
-    if (sourceIterator != null) {
-      sourceIterator.commit();
-    }
-    if (cursor != null){
-      records.commitCursor(cursor);
+      tx.cancel();
+    } else {
+      if (sourceIterator != null) {
+        sourceIterator.commit();
+      }
+      if (cursor != null){
+        records.commitCursor(cursor);
+      }
     }
   }
 
@@ -179,12 +180,14 @@ public class ProjectIterator extends Iterator {
   public void abort() {
     if (duplicateFreeKVIterator != null) {
       duplicateFreeKVIterator.cancel();
-    }
-    if (sourceIterator != null) {
-      sourceIterator.abort();
-    }
-    if (cursor != null) {
-      records.abortCursor(cursor);
+      tx.cancel();
+    } else {
+      if (sourceIterator != null) {
+        sourceIterator.abort();
+      }
+      if (cursor != null) {
+        records.abortCursor(cursor);
+      }
     }
   }
 
@@ -198,20 +201,13 @@ public class ProjectIterator extends Iterator {
   }
 
   private void makeRecordsDuplicateFree() {
-    // remove the temporary table first
-    Database db = FDBHelper.initialization();
-
-    // open a transaction to write attr in
-    Transaction tx = FDBHelper.openTransaction(db);
     List<String> tempPath = new ArrayList<>();
     tempPath.add(TABLE_TEMP_STORE);
 
-    // open the directory
     tempDirectoryForDuplicateFree = FDBHelper.createOrOpenSubspace(tx, tempPath);
 
-    // the key is (attrName, attrVal), value is empty
-    // key is identified by the transaction committed version
-    baseDuplicateFreeKeyPrefix = new Tuple().add(tx.getReadVersion().join());
+    // the key is (attrVal), value is empty
+    baseDuplicateFreeKeyPrefix = new Tuple();
     Tuple valTuple = new Tuple();
     Record rawRecord = nextRawRecord();
     while (rawRecord != null) {
@@ -223,13 +219,6 @@ public class ProjectIterator extends Iterator {
       }
       rawRecord = nextRawRecord();
     }
-
-    FDBHelper.commitTransaction(tx);
-    // open an iterator for that newly-added guys
-    this.tx = FDBHelper.openTransaction(db);
     duplicateFreeKVIterator = this.tx.getRange(Range.startsWith(tempDirectoryForDuplicateFree.pack(baseDuplicateFreeKeyPrefix))).iterator();
   }
-
-
-
 }
