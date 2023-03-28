@@ -11,6 +11,7 @@ import CSCI485ClassProject.StatusCode;
 import CSCI485ClassProject.TableManager;
 import CSCI485ClassProject.TableManagerImpl;
 import CSCI485ClassProject.models.AlgebraicOperator;
+import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.AttributeType;
 import CSCI485ClassProject.models.ComparisonOperator;
 import CSCI485ClassProject.models.ComparisonPredicate;
@@ -65,6 +66,7 @@ public class Part4Test {
       new String[]{Name, Floor};
 
   public static int initialNumberOfRecords = 100;
+  public static int updatedNumberOfRecords = 100;
   public static int dnoLB = 20;
   public static int dnoUB = 80;
   public static int randSeed = 10;
@@ -326,5 +328,104 @@ public class Part4Test {
     }
 
     assertEquals(expectedRecordSet, actualRecordSet);
+  }
+
+  @Test
+  public void unitTest4() {
+    // insert new records in the department table
+    for (int i = initialNumberOfRecords; i < initialNumberOfRecords + updatedNumberOfRecords; i++) {
+      Record record = getExpectedDepartmentRecord(i);
+      assertEquals(StatusCode.SUCCESS, relAlgOperators.insert(DepartmentTableName, record, DepartmentTablePKAttributes));
+    }
+
+    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, new ComparisonPredicate(), false);
+    assertNotNull(departmentIterator);
+
+    for (int i = 0; i < initialNumberOfRecords + updatedNumberOfRecords; i++) {
+      Record record = departmentIterator.next();
+      Record expectedRecord = getExpectedDepartmentRecord(i);
+      assertEquals(expectedRecord, record);
+    }
+  }
+
+  @Test
+  public void unitTest5() {
+    AssignmentExpression salaryUpdateExpression =
+        new AssignmentExpression(Salary, AttributeType.INT, Salary, AttributeType.INT, 2, AlgebraicOperator.PRODUCT);
+    assertEquals(StatusCode.SUCCESS, relAlgOperators.update(Salary, salaryUpdateExpression, null));
+
+    // verify the updates
+    Iterator iterator = relAlgOperators.select(Salary, new ComparisonPredicate(), false);
+    for (int i = 0; i < initialNumberOfRecords; i++) {
+      long ssn = i;
+      long salary = 2 * getSalary(ssn);
+
+      Record record = iterator.next();
+      assertNotNull(record);
+      assertEquals(salary, record.getValueForGivenAttrName(Salary));
+    }
+
+    assertNull(iterator.next());
+
+    // get all employees that salary <= 80
+    ComparisonPredicate compPredicate =
+        new ComparisonPredicate(Salary, AttributeType.INT, ComparisonOperator.LESS_THAN_OR_EQUAL_TO, 80);
+    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, compPredicate, false);
+    assertNotNull(employeeIterator);
+
+    // make their salary = 4 * age
+    salaryUpdateExpression =
+        new AssignmentExpression(Salary, AttributeType.INT, Age, AttributeType.INT, 2, AlgebraicOperator.PRODUCT);
+
+    assertEquals(StatusCode.SUCCESS, relAlgOperators.update(EmployeeTableName, salaryUpdateExpression, employeeIterator));
+    // verify the updates
+    iterator = relAlgOperators.select(Salary, new ComparisonPredicate(), false);
+    for (int i = 0; i < initialNumberOfRecords; i++) {
+      long ssn = i;
+      long salary = 2 * getSalary(ssn);
+      long age = getAge(ssn);
+
+      Record record = iterator.next();
+      assertNotNull(record);
+
+      if (salary <= 80) {
+        assertEquals(4 * age, record.getValueForGivenAttrName(Salary));
+      } else {
+        assertEquals(salary, record.getValueForGivenAttrName(Salary));
+      }
+    }
+
+    assertNull(iterator.next());
+  }
+
+  @Test
+  public void unitTest6() {
+    // delete Department with DNO=40
+    ComparisonPredicate dnoEq40predicate =
+        new ComparisonPredicate(DNO, AttributeType.INT, ComparisonOperator.EQUAL_TO, 40);
+
+    Iterator departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, false);
+    assertNotNull(departmentIterator);
+
+    assertEquals(StatusCode.SUCCESS, relAlgOperators.delete(DepartmentTableName, departmentIterator));
+    // TODO: commit the iterator
+
+    // verify the deletion
+    departmentIterator = relAlgOperators.select(DepartmentTableName, dnoEq40predicate, false);
+    assertNotNull(departmentIterator);
+    assertNull(departmentIterator.next());
+
+    Iterator employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, false);
+    assertNotNull(employeeIterator);
+
+    assertEquals(StatusCode.SUCCESS, relAlgOperators.delete(EmployeeTableName, employeeIterator));
+    // TODO: commit the iterator
+
+    // verify the deletion
+    employeeIterator = relAlgOperators.select(EmployeeTableName, dnoEq40predicate, false);
+    assertNotNull(employeeIterator);
+    assertNull(employeeIterator.next());
+
+
   }
 }
