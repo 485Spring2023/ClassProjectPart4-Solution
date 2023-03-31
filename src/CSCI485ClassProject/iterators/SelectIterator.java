@@ -27,6 +27,14 @@ public class SelectIterator extends Iterator {
   private boolean isIteratorReachToEOF = false;
 
   public SelectIterator(Records records, String tableName, ComparisonPredicate compPredicate, Iterator.Mode mode, boolean isUsingIndex) {
+    /*
+    * This implementation is designed for instructional purposes.
+    * It emulates what should be implemented if a database designer was implementing the iterator. 
+    * It returns a null iterator when isUsingIndex flag is TRUE and there is NO index on the referenced attribute of the compPredicate and the compPredicate consists of one attribute, e.g., Sal=30K.
+    * It reurnts a valid iterator when isUsingIndex flag is TURE and the compPredicate is either empty (no predicate is specified) or consists of a comparison of two attributes of a table, e.g., Sal=1000*age.
+    * The second case with a valid iterator is an incorrect implementation.  It should return null because a query optimizer should not use the index structure for the purposes of such a predicate.
+    * We are returning a valid iterator only for instruction purposes.  
+    */
     this.records = records;
     this.compPredicate = compPredicate;
     this.isUsingIndex = isUsingIndex;
