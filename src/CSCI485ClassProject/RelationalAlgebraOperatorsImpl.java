@@ -55,8 +55,6 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   @Override
   public Iterator select(String tableName, ComparisonPredicate predicate, Iterator.Mode mode, boolean isUsingIndex) {
-    // When the predicate references two attributes, e.g. Salary = 10 * Age. There is no way that the select can use indexes to retrieve records.
-    // Therefore, the select will ignore isUsingIndex parameter.
     if (predicate.validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID) {
       return null;
     }
