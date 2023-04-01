@@ -59,6 +59,10 @@ public interface RelationalAlgebraOperators {
    * Join two iterators together on the given predicate. A set of attribute names may be provided.
    *
    * If a set of non-null attribute names are provided, the join results may only contain the specified set of attributes.
+   *
+   * When two records contain attribute(s) with the same name, the attribute names should be prefixed with the table name.
+   * E.g. When joining Employee(SSN, DNO, Name) and Department(DNO, Name), the result attributes are
+   *    (SSN, Employee.DNO, Employee.Name, Department.DNO, Department.Name)
    * @param outerIterator the iterator that is at the outer loop of the join
    * @param innerIterator the iterator that is at the inner loop of the join
    * @param predicate the join condition
@@ -77,9 +81,6 @@ public interface RelationalAlgebraOperators {
    * @return StatusCode
    */
   public StatusCode insert(String tableName, Record record, String[] primaryKeys);
-
-  // dataSourceIterator should be the select iterator
-  // if the data source iterator is null, update all records in the table
 
   /**
    * Update records by applying the assignment expression.
