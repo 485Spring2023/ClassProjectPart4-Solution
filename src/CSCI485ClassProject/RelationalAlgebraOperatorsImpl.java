@@ -29,15 +29,32 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   private TableManager tableManager;
   private Database dbHandle;
 
-  public RelationalAlgebraOperatorsImpl(TableManager tableManager, Records records, Indexes indexes) {
-    this.records = records;
-    this.indexes = indexes;
-    this.tableManager = tableManager;
-    dbHandle = FDBHelper.initialization();
+  public RelationalAlgebraOperatorsImpl() {
+    Database db = FDBHelper.initialization();
+    this.records = new RecordsImpl(db);
+    this.indexes = new IndexesImpl();
+    this.tableManager = new TableManagerImpl(db);
+    dbHandle = db;
   }
 
   private Set<Record> getResultSetFromIterator(Iterator iterator) {
     Set<Record> res = new HashSet<>();
+
+    while (true) {
+      Record rec = iterator.next();
+      if (rec == null) {
+        break;
+      }
+
+      res.add(rec);
+    }
+
+    iterator.commit();
+    return res;
+  }
+
+  private List<Record> getResultListFromIterator(Iterator iterator) {
+    List<Record> res = new ArrayList<>();
 
     while (true) {
       Record rec = iterator.next();
@@ -85,15 +102,15 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   @Override
-  public Set<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree) {
+  public List<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree) {
     Iterator iterator = project(tableName, attrName, isDuplicateFree);
-    return getResultSetFromIterator(iterator);
+    return getResultListFromIterator(iterator);
   }
 
   @Override
-  public Set<Record> simpleProject(Iterator iterator, String attrName, boolean isDuplicateFree) {
+  public List<Record> simpleProject(Iterator iterator, String attrName, boolean isDuplicateFree) {
     Iterator resIte = project(iterator, attrName, isDuplicateFree);
-    return getResultSetFromIterator(resIte);
+    return getResultListFromIterator(resIte);
   }
 
   @Override

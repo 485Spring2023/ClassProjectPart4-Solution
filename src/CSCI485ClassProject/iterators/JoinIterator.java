@@ -3,6 +3,7 @@ package CSCI485ClassProject.iterators;
 import CSCI485ClassProject.Iterator;
 import CSCI485ClassProject.models.ComparisonPredicate;
 import CSCI485ClassProject.models.Record;
+import com.apple.foundationdb.Transaction;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -102,6 +103,11 @@ public class JoinIterator extends Iterator {
   @Override
   public String getTableName() {
     return outerIterator.getTableName() + "." + innerIterator.getTableName();
+  }
+
+  @Override
+  public Transaction getTransaction() {
+    return null;
   }
 
   @Override

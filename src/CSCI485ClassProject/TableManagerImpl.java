@@ -8,6 +8,7 @@ import com.apple.foundationdb.Database;
 import com.apple.foundationdb.Transaction;
 import com.apple.foundationdb.directory.DirectorySubspace;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,6 +25,10 @@ public class TableManagerImpl implements TableManager{
 
   public TableManagerImpl() {
     db = FDBHelper.initialization();
+  }
+
+  public TableManagerImpl(Database db) {
+    this.db = db;
   }
 
   @Override

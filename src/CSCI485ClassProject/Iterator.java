@@ -4,43 +4,40 @@ import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.Record;
 import com.apple.foundationdb.Transaction;
 
-public class Iterator {
+public abstract class Iterator {
 
-  public static enum Mode {
+  public enum Mode {
     READ,
     READ_WRITE
   }
 
-  private Mode mode = Mode.READ;
+  private Mode mode;
 
   public Mode getMode() {
     return mode;
-  }
+  };
 
   public void setMode(Mode mode) {
     this.mode = mode;
-  }
+  };
 
-  public Record next() {return null;}
+  public abstract Record next();
 
-  public String getTableName() {
-    return "";
-  }
+  public abstract String getTableName();
 
-  public Transaction getTransaction() {return null;}
+  public abstract Transaction getTransaction();
 
   public StatusCode deleteRecord() {
     return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
-  }
+  };
 
   public StatusCode updateRecord(AssignmentExpression assignExp) {
     return StatusCode.ITERATOR_WRITE_NOT_SUPPORTED;
-  }
+  };
 
-  public void commit() {}
+  public abstract void commit();
 
-  public void abort() {}
+  public abstract void abort();
 
-  // seeks just initialized
-  public void resetToStart() {}
+  public abstract void resetToStart();
 }

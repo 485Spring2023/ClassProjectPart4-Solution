@@ -121,7 +121,7 @@ public class Part4Test {
     tableManager = new TableManagerImpl();
     records = new RecordsImpl();
     indexes = new IndexesImpl();
-    relAlgOperators = new RelationalAlgebraOperatorsImpl(tableManager, records, indexes);
+    relAlgOperators = new RelationalAlgebraOperatorsImpl();
   }
 
   private Record getExpectedDepartmentRecord(long dno) {
@@ -252,13 +252,16 @@ public class Part4Test {
       expectDnoSet.add(dno);
     }
 
-    Set<Record> inorderDnoRecords = relAlgOperators.simpleProject(EmployeeTableName, DNO, true);
-    Set<Long> actualDnoSet = new HashSet<>();
+    List<Record> inorderDnoRecords = relAlgOperators.simpleProject(EmployeeTableName, DNO, true);
+    List<Long> actualDnoList = new ArrayList<>();
 
     for (Record record : inorderDnoRecords) {
-      actualDnoSet.add((Long) record.getValueForGivenAttrName(DNO));
+      actualDnoList.add((Long) record.getValueForGivenAttrName(DNO));
     }
-    assertEquals(expectDnoSet, actualDnoSet);
+
+    List<Long> expectDnoList = new ArrayList<>(expectDnoSet);
+    java.util.Collections.sort(expectDnoList);
+    assertEquals(expectDnoList, actualDnoList);
 
     ComparisonPredicate predicate = new ComparisonPredicate(SSN, AttributeType.INT, ComparisonOperator.LESS_THAN, 50);
     Iterator selectRes = relAlgOperators.select(EmployeeTableName, predicate, Iterator.Mode.READ_WRITE, false);

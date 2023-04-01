@@ -4,6 +4,7 @@ import CSCI485ClassProject.models.AssignmentExpression;
 import CSCI485ClassProject.models.ComparisonPredicate;
 import CSCI485ClassProject.models.Record;
 
+import java.util.List;
 import java.util.Set;
 
 public interface RelationalAlgebraOperators {
@@ -48,12 +49,12 @@ public interface RelationalAlgebraOperators {
   /**
    * Returns a set of records that project only the given attributeName from a table
    */
-  Set<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree);
+  List<Record> simpleProject(String tableName, String attrName, boolean isDuplicateFree);
 
   /**
    * Returns a set of records that project only the given attributeName from another iterator
    */
-  Set<Record> simpleProject(Iterator iterator, String attrName, boolean isDuplicateFree);
+  List<Record> simpleProject(Iterator iterator, String attrName, boolean isDuplicateFree);
 
   /**
    * Join two iterators together on the given predicate. A set of attribute names may be provided.
@@ -91,10 +92,6 @@ public interface RelationalAlgebraOperators {
    * @return StatusCode
    */
   public StatusCode update(String tableName, AssignmentExpression assignExp, Iterator dataSourceIterator);
-
-
-  // iterator comes from the select
-  // if the iterator is null, delete all records in the table
 
   /**
    * Delete records from the table.
