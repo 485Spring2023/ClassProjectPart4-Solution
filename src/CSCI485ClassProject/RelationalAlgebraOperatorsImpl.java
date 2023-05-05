@@ -31,7 +31,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   public RelationalAlgebraOperatorsImpl() {
     Database db = FDBHelper.initialization();
-    this.records = new RecordsImpl(db);
+    this.records = new RecordsImpl();
     this.indexes = new IndexesImpl();
     this.tableManager = new TableManagerImpl(db);
     dbHandle = db;

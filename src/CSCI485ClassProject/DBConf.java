@@ -5,4 +5,5 @@ public class DBConf {
   public static String TABLE_SCHEMA_STORE = "schema";
   public static String TABLE_RECORDS_STORE = "records";
   public static String TABLE_TEMP_STORE = "temp";
+  public static String TABLE_INDEXES_STORE = "indexes";
 }

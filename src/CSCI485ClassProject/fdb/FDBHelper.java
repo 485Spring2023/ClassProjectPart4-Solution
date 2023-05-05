@@ -74,6 +74,25 @@ public class FDBHelper {
     }
   }
 
+  public static List<String> getAllDirectSubspacesNameUnderGivenPath(Transaction tx, List<String> path) {
+    DirectorySubspace dir = openSubspace(tx, path);
+    return dir.list(tx).join();
+  }
+
+  public static AsyncIterable<KeyValue> getKVPairIterableFirstGreaterThanKeyInDirectory(DirectorySubspace dir, Transaction tx, Tuple keyTuple, boolean isReverse) {
+    Range dirRange = dir.range();
+    KeySelector beginKeySelector = KeySelector.firstGreaterThan(dir.pack(keyTuple));
+    Range range = new Range(beginKeySelector.getKey(), dirRange.end);
+    return tx.getRange(range, ReadTransaction.ROW_LIMIT_UNLIMITED, isReverse);
+  }
+
+  public static AsyncIterable<KeyValue> getKVPairIterableEndBeforePrefixInDirectory(DirectorySubspace dir, Transaction tx, Tuple prefixTuple, boolean isReverse) {
+    Range dirRange = dir.range();
+    KeySelector endKeySelector = KeySelector.firstGreaterOrEqual(dir.pack(prefixTuple));
+    Range range = new Range(dirRange.begin, endKeySelector.getKey());
+    return tx.getRange(range, ReadTransaction.ROW_LIMIT_UNLIMITED, isReverse);
+  }
+
   public static void setFDBKVPair(DirectorySubspace tgtSubspace, Transaction tx, FDBKVPair kv) {
     if (tgtSubspace == null) {
       tgtSubspace = FDBHelper.createOrOpenSubspace(tx, kv.getSubspacePath());

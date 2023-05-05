@@ -4,8 +4,10 @@ import CSCI485ClassProject.fdb.FDBHelper;
 import CSCI485ClassProject.fdb.FDBKVPair;
 import CSCI485ClassProject.models.AttributeType;
 import CSCI485ClassProject.models.ComparisonOperator;
+import CSCI485ClassProject.models.IndexType;
 import CSCI485ClassProject.models.Record;
 import CSCI485ClassProject.models.TableMetadata;
+import CSCI485ClassProject.utils.IndexesUtils;
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.Transaction;
 import com.apple.foundationdb.directory.DirectorySubspace;
@@ -15,7 +17,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class RecordsImpl implements Records{
@@ -24,10 +28,6 @@ public class RecordsImpl implements Records{
 
   public RecordsImpl() {
     db = FDBHelper.initialization();
-  }
-
-  public RecordsImpl(Database db) {
-    this.db = db;
   }
 
   private TableMetadata getTableMetadataByTableName(Transaction tx, String tableName) {
@@ -39,36 +39,37 @@ public class RecordsImpl implements Records{
   }
   @Override
   public StatusCode insertRecord(String tableName, String[] primaryKeys, Object[] primaryKeysValues, String[] attrNames, Object[] attrValues) {
-
+    // open the transaction
     Transaction tx = FDBHelper.openTransaction(db);
+    // check if the table exists
     if (!FDBHelper.doesSubdirectoryExists(tx, Collections.singletonList(tableName))) {
       FDBHelper.abortTransaction(tx);
       return StatusCode.TABLE_NOT_FOUND;
     }
-
+    // check the validity of the input parameters
     if (primaryKeys == null || primaryKeysValues == null || attrNames == null || attrValues == null) {
       FDBHelper.abortTransaction(tx);
       return StatusCode.DATA_RECORD_CREATION_ATTRIBUTES_INVALID;
     }
-
     if (primaryKeys.length != primaryKeysValues.length || attrValues.length != attrNames.length) {
       FDBHelper.abortTransaction(tx);
       return StatusCode.DATA_RECORD_CREATION_ATTRIBUTES_INVALID;
     }
 
+    // get the tableMetadata
     TableMetadata tblMetadata = getTableMetadataByTableName(tx, tableName);
 
     List<String> pks = Arrays.asList(primaryKeys);
     List<String> schemaPks = tblMetadata.getPrimaryKeys();
 
-    // check if pks is identical to schemaPks
+    // check if the given primary keys are identical to primary keys stated in the table schema
     if (!pks.containsAll(schemaPks) || !schemaPks.containsAll(pks)) {
       FDBHelper.abortTransaction(tx);
       return StatusCode.DATA_RECORD_PRIMARY_KEYS_UNMATCHED;
     }
 
     Record record = new Record();
-    // add primary key value to record
+    // do the input values' type checking
     for (int i = 0; i<primaryKeys.length; i++) {
       StatusCode status = record.setAttrNameAndValue(primaryKeys[i], primaryKeysValues[i]);
       if (status != StatusCode.SUCCESS) {
@@ -112,6 +113,7 @@ public class RecordsImpl implements Records{
     }
 
     if (recordsTransformer.doesPrimaryKeyExist(tx, primKeyTuple)) {
+      FDBHelper.abortTransaction(tx);
       return StatusCode.DATA_RECORD_CREATION_RECORD_ALREADY_EXISTS;
     }
 
@@ -126,6 +128,25 @@ public class RecordsImpl implements Records{
     DirectorySubspace tableSchemaDirectory = FDBHelper.openSubspace(tx, tblMetadataTransformer.getTableAttributeStorePath());
     for (FDBKVPair kv : tblSchemaUpdatePairs) {
       FDBHelper.setFDBKVPair(tableSchemaDirectory, tx, kv);
+    }
+
+
+
+    // update indexes
+    List<Object> primaryKeyVals = primKeyTuple.getItems();
+    HashMap<String, DirectorySubspace> indexSubspaces = IndexesUtils.openIndexSubspacesOfTable(tx, tableName, tblMetadata);
+    for (Map.Entry<String, DirectorySubspace> attrIdx : indexSubspaces.entrySet()) {
+      String attrName = attrIdx.getKey();
+      Object attrVal = record.getValueForGivenAttrName(attrName);
+
+      DirectorySubspace idxSpace = attrIdx.getValue();
+
+      IndexType idxType = IndexesUtils.getIndexTypeOfTableAttribute(tx, idxSpace);
+
+      IndexTransformer indexTransformer = new IndexTransformer(tableName, attrName, idxType);
+      FDBKVPair idxPair = indexTransformer.convertToIndexKVPair(idxType, attrVal, primaryKeyVals);
+
+      FDBHelper.setFDBKVPair(idxSpace, tx, idxPair);
     }
 
     FDBHelper.commitTransaction(tx);
@@ -143,8 +164,7 @@ public class RecordsImpl implements Records{
     }
 
     TableMetadata tblMetadata = getTableMetadataByTableName(tx, tableName);
-    Cursor cursor = new Cursor(mode, tableName, tblMetadata, tx);
-    return cursor;
+    return new Cursor(mode, tableName, tblMetadata, tx);
   }
 
   @Override
@@ -165,14 +185,29 @@ public class RecordsImpl implements Records{
       return null;
     }
 
-    Cursor cursor = new Cursor(mode, tableName, tblMetadata, tx);
+    if (isUsingIndex) {
+      if (!IndexesUtils.doesIndexExistOnTableAttribute(tx, tableName, attrName)) {
+        FDBHelper.abortTransaction(tx);
+        return null;
+      }
+    }
+
     Record.Value attrVal = new Record.Value();
     StatusCode initVal = attrVal.setValue(attrValue);
     if (initVal != StatusCode.SUCCESS) {
+      // check if the value's type matches the table schema
       FDBHelper.abortTransaction(tx);
       return null;
     }
-    cursor.enablePredicate(attrName, attrVal, operator);
+
+    Cursor cursor;
+    if (isUsingIndex) {
+      IndexType idxType = IndexesUtils.getIndexTypeOfTableAttribute(tx, tableName, attrName);
+      cursor = new Cursor(tableName, tblMetadata, attrName, operator, attrVal, idxType, tx);
+    } else {
+      cursor = new Cursor(mode, tableName, tblMetadata, tx);
+      cursor.enablePredicate(attrName, attrVal, operator);
+    }
     return cursor;
   }
 
@@ -203,27 +238,73 @@ public class RecordsImpl implements Records{
 
   @Override
   public StatusCode deleteRecord(Cursor cursor) {
+    if (cursor == null || cursor.getTx() == null) {
+      return StatusCode.CURSOR_INVALID;
+    }
+    if (!cursor.isInitialized()) {
+      return StatusCode.CURSOR_NOT_INITIALIZED;
+    }
+    if (cursor.getCurrentRecord() == null) {
+      return StatusCode.CURSOR_REACH_TO_EOF;
+    }
+    Record recordToDelete = cursor.getCurrentRecord();
+    Set<String> attrDiffSet = new HashSet<>();
+    Transaction tx = cursor.getTx();
+
+    // Open another cursor and scan the table, see if the table schema needs to change because of the deletion
+    Cursor scanCursor =
+        new Cursor(Cursor.Mode.READ, cursor.getTableName(), cursor.getTableMetadata(), tx);
+    boolean isScanCursorInit = false;
+    while (true) {
+      Record record;
+      if (!isScanCursorInit) {
+        isScanCursorInit = true;
+        record = getFirst(scanCursor);
+      } else {
+        record = getNext(scanCursor);
+      }
+      if (record == null) {
+        break;
+      }
+      Set<String> attrSet = record.getMapAttrNameToValue().keySet();
+      Set<String> attrSetToDelete = new HashSet<>(recordToDelete.getMapAttrNameToValue().keySet());
+      attrSetToDelete.removeAll(attrSet);
+      attrDiffSet.addAll(attrSetToDelete);
+    }
+    if (!attrDiffSet.isEmpty()) {
+      // drop the attributes of the table
+      TableMetadataTransformer transformer = new TableMetadataTransformer(scanCursor.getTableName());
+      List<String> tblAttributeDirPath = transformer.getTableAttributeStorePath();
+      DirectorySubspace tableAttrDir = FDBHelper.openSubspace(tx, tblAttributeDirPath);
+
+      for (String attrNameToDrop : attrDiffSet) {
+        Tuple attrKeyTuple = TableMetadataTransformer.getTableAttributeKeyTuple(attrNameToDrop);
+        FDBHelper.removeKeyValuePair(tableAttrDir, tx, attrKeyTuple);
+      }
+    }
     return cursor.deleteCurrentRecord();
   }
 
   @Override
-  public StatusCode deleteDataRecord(String tableName, String[] attrNames, Object[] attrValues) {
-    return null;
-  }
-
-  @Override
   public StatusCode commitCursor(Cursor cursor) {
-    if (cursor != null) {
-      cursor.commit();
+    if (cursor == null) {
+      return StatusCode.CURSOR_INVALID;
     }
+    cursor.commit();
     return StatusCode.SUCCESS;
   }
 
   @Override
   public StatusCode abortCursor(Cursor cursor) {
-    if (cursor != null) {
-      cursor.abort();
+    if (cursor == null) {
+      return StatusCode.CURSOR_INVALID;
     }
+    cursor.abort();
     return StatusCode.SUCCESS;
+  }
+
+  @Override
+  public StatusCode deleteDataRecord(String tableName, String[] attrNames, Object[] attrValues) {
+    return null;
   }
 }
